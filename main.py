@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import torch
 import torch.nn as nn
@@ -6,6 +7,20 @@ from transformers import DistilBertTokenizer, DistilBertModel
 
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:5173",  # Example: Your frontend origin
+    "https://your-production-domain.com",  # Example: Your production frontend
+    "*",  # WARNING: Allows all origins (for development, but not recommended for production)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE, OPTIONS, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 class InputData(BaseModel):
     input: str
@@ -37,11 +52,12 @@ encoder_map = {
     5: 'surprise',
 }
 
-
 @app.post("/predict")
 async def predict(data: InputData):
     
     inp = tokenizer(data.input, padding='max_length', truncation=True, return_tensors="pt", max_length=100).to(device)
+
+    print(data)
 
     with torch.no_grad():
         logits = model(inp['input_ids'], inp['attention_mask'])
